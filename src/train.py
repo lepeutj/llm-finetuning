@@ -3,7 +3,7 @@
 import argparse
 import json
 
-from .common import (add_run_arguments, experiment_identity, messages,
+from .common import (add_run_arguments, experiment_identity, lora_target_modules, messages,
                      quantization_options, read_jsonl, run_directory, selected_config)
 
 
@@ -78,7 +78,7 @@ def main():
         r=int(settings["lora_r"]),
         lora_alpha=int(settings["lora_alpha"]),
         lora_dropout=float(settings["lora_dropout"]),
-        target_modules=list(settings["lora_target_modules"]),
+        target_modules=lora_target_modules(settings["lora_target_modules"]),
         bias="none",
         task_type="CAUSAL_LM",
     )

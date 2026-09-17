@@ -51,7 +51,7 @@ python -m src.evaluate --model Qwen/Qwen2.5-1.5B-Instruct --quantization nf4
 python -m src.compare_runs
 ```
 
-Other instruction models can be supplied by Hugging Face ID if their tokenizer has a chat template and their attention layers match `training.lora_target_modules`. This code does not enable remote model code. When changing model families, check their license and update the target modules if necessary. Keep the same `--model` and `--quantization` values across baseline, training, and evaluation.
+Other instruction models can be supplied by Hugging Face ID or a local Transformers model directory containing its config, tokenizer, and weight files. The tokenizer must have a chat template. When changing model families, check their license and update `training.lora_target_modules` if necessary. It accepts a list such as `[q_proj, v_proj]` or `all-linear`; the latter works across more architectures but trains more parameters and may use more VRAM. This code does not enable remote model code or take a GGUF filename. Keep the same `--model` and `--quantization` values across baseline, training, and evaluation. An adapter belongs to the base model it was trained for.
 
 For a quick pipeline check, run `python -m src.baseline --limit 3`, `python -m src.train --max-train-samples 16 --max-steps 1`, then `python -m src.evaluate`. This checks wiring, **not model quality**. Repeat the full commands above for an actual comparison; training again replaces the adapter, and baseline without `--limit` scores all 100 test examples. If there is no CUDA GPU, add `--model Qwen/Qwen2.5-1.5B-Instruct --quantization none` to each command for a CPU smoke run.
 

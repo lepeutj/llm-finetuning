@@ -51,5 +51,6 @@ training:
   lora_alpha: 16
   # Regularization applied to LoRA inputs during training.
   lora_dropout: 0.05
-  # Qwen attention projections that receive LoRA matrices.
+  # Qwen attention projections that receive LoRA matrices. Other model families
+  # may need different names; "all-linear" also works but uses more VRAM.
   lora_target_modules: [q_proj, v_proj]

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.common import run_directory, selected_config
+from src.common import lora_target_modules, run_directory, selected_config
 from src.metrics import parse_prediction, score
 from src.prepare_dataset import FIELDS, prepare
 
@@ -52,6 +52,12 @@ class MetricTests(unittest.TestCase):
 
 
 class RunSelectionTests(unittest.TestCase):
+    def test_lora_target_configuration(self):
+        self.assertEqual(lora_target_modules(["q_proj", "v_proj"]), ["q_proj", "v_proj"])
+        self.assertEqual(lora_target_modules("all-linear"), "all-linear")
+        with self.assertRaises(ValueError):
+            lora_target_modules("q_proj")
+
     def test_models_and_modes_get_separate_directories(self):
         class Arguments:
             model = None

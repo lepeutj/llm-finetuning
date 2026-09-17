@@ -82,6 +82,15 @@ def run_directory(settings):
     return path(settings["training"]["results_dir"]) / f"{slug}-{settings['quantization']['mode']}-{digest}"
 
 
+def lora_target_modules(value):
+    """Accept either named layers or PEFT's architecture-independent option."""
+    if value == "all-linear":
+        return value
+    if isinstance(value, list) and value and all(isinstance(item, str) and item for item in value):
+        return value
+    raise ValueError("training.lora_target_modules must be a nonempty list or 'all-linear'")
+
+
 def messages(sentence):
     # Some instruction models do not accept a separate system role. A single
     # user turn keeps training and inference prompts portable across families.
