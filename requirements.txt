@@ -1,0 +1,12 @@
+# Python 3.10+ recommended. Install a PyTorch build suited to your hardware first:
+# https://pytorch.org/get-started/locally/
+torch>=2.5,<3
+transformers>=4.57,<4.58
+datasets>=3,<5
+peft>=0.17,<0.18
+trl>=0.26,<0.27
+accelerate>=1,<2
+PyYAML>=6,<7
+safetensors>=0.4,<1
+# Install separately for quantization.mode int8, nf4, or fp4:
+# bitsandbytes>=0.45,<1

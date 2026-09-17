@@ -1,0 +1,53 @@
+project:
+  # Controls data shuffling and training randomness. Keep fixed for repeatable runs.
+  seed: 42
+  # Hugging Face model ID. Use the same checkpoint for baseline and LoRA.
+  # Change to Qwen/Qwen2.5-1.5B-Instruct for a lighter run.
+  model_name: Qwen/Qwen2.5-3B-Instruct
+
+quantization:
+  # none: FP16 on CUDA / FP32 on CPU; int8: LLM.int8; nf4/fp4: 4-bit.
+  # Quantized modes need bitsandbytes and an NVIDIA CUDA GPU in this demo.
+  mode: nf4
+  # Nested quantization saves additional memory in 4-bit modes.
+  double_quant: true
+
+data:
+  # Paths are relative to this repository's root.
+  train_path: data/train.jsonl
+  validation_path: data/validation.jsonl
+  test_path: data/test.jsonl
+  # Each generated example has a distinct full name across all splits.
+  train_size: 600
+  validation_size: 100
+  test_size: 100
+
+generation:
+  # Maximum tokens in each predicted JSON response.
+  max_new_tokens: 128
+  # Greedy decoding makes the model comparison repeatable.
+  do_sample: false
+
+training:
+  # Each model and quantization mode gets its own subdirectory below this root.
+  results_dir: results
+  # Number of passes over the training set.
+  num_train_epochs: 2
+  # Per-device microbatch size. Reduce to 1 if memory is tight.
+  per_device_train_batch_size: 1
+  # Effective batch size = microbatch size × accumulation × device count.
+  gradient_accumulation_steps: 8
+  # Recompute some activations during backward pass to reduce GPU memory.
+  gradient_checkpointing: true
+  # Adapter learning rate; higher than typical full-weight fine-tuning rates.
+  learning_rate: 0.0002
+  # Maximum prompt + completion length in tokens.
+  max_seq_length: 256
+  # LoRA matrix rank: higher values add capacity and trainable parameters.
+  lora_r: 8
+  # LoRA update scale is alpha / rank.
+  lora_alpha: 16
+  # Regularization applied to LoRA inputs during training.
+  lora_dropout: 0.05
+  # Qwen attention projections that receive LoRA matrices.
+  lora_target_modules: [q_proj, v_proj]
