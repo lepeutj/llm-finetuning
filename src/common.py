@@ -42,6 +42,7 @@ def write_jsonl(value, rows):
 def experiment_identity(settings):
     return {
         "model_name": settings["project"]["model_name"],
+        "model_revision": settings["project"].get("model_revision"),
         "quantization": settings["quantization"],
         "seed": settings["project"]["seed"],
         "data_sha256": {
@@ -53,6 +54,7 @@ def experiment_identity(settings):
 
 def add_run_arguments(parser):
     parser.add_argument("--model", help="Hugging Face instruction model ID; overrides config.yaml")
+    parser.add_argument("--revision", help="Hugging Face model revision or commit; overrides config.yaml")
     parser.add_argument("--quantization", choices=("none", "int8", "nf4", "fp4"),
                         help="Base-weight precision; overrides config.yaml")
 
@@ -61,6 +63,10 @@ def selected_config(args):
     settings = config()
     if args.model:
         settings["project"]["model_name"] = args.model
+        if not args.revision:
+            settings["project"]["model_revision"] = None
+    if args.revision:
+        settings["project"]["model_revision"] = args.revision
     if args.quantization:
         settings["quantization"]["mode"] = args.quantization
     return settings
@@ -112,15 +118,15 @@ def quantization_options(settings):
     return {"quantization_config": quantization, "device_map": {"": torch.cuda.current_device()}, "torch_dtype": compute_dtype}
 
 
-def load_model(model_name, adapter=None, quantization=None):
+def load_model(model_name, adapter=None, quantization=None, revision=None):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
     if not tokenizer.chat_template:
         raise ValueError(f"{model_name} has no tokenizer chat template; choose an instruction/chat model")
     options = quantization_options(quantization or {"mode": "none"})
-    model = AutoModelForCausalLM.from_pretrained(model_name, **options)
+    model = AutoModelForCausalLM.from_pretrained(model_name, revision=revision, **options)
     if adapter:
         from peft import PeftModel
         model = PeftModel.from_pretrained(model, str(adapter))

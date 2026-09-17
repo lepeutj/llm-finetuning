@@ -55,6 +55,7 @@ class RunSelectionTests(unittest.TestCase):
     def test_models_and_modes_get_separate_directories(self):
         class Arguments:
             model = None
+            revision = None
             quantization = None
 
         default = selected_config(Arguments())
@@ -67,6 +68,9 @@ class RunSelectionTests(unittest.TestCase):
         self.assertNotEqual(original_dir, run_directory(another))
         another = selected_config(Arguments())
         another["training"]["learning_rate"] = 0.0001
+        self.assertNotEqual(original_dir, run_directory(another))
+        another = selected_config(Arguments())
+        another["project"]["model_revision"] = "specific-commit"
         self.assertNotEqual(original_dir, run_directory(another))
 
 

@@ -19,7 +19,8 @@ def main():
         if args.limit < 1:
             parser.error("--limit must be positive")
         rows = rows[:args.limit]
-    model, tokenizer = load_model(cfg["project"]["model_name"], quantization=cfg["quantization"])
+    model, tokenizer = load_model(cfg["project"]["model_name"], quantization=cfg["quantization"],
+                                  revision=cfg["project"].get("model_revision"))
     output = []
     for index, row in enumerate(rows, 1):
         output.append({"input": row["input"], "reference": row["output"],

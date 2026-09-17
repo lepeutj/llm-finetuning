@@ -15,7 +15,8 @@ def main():
     adapter = None if args.base else run_directory(cfg) / "adapter"
     if adapter and not (adapter / "adapter_config.json").exists():
         parser.error("LoRA adapter missing; run training or pass --base")
-    model, tokenizer = load_model(cfg["project"]["model_name"], adapter, cfg["quantization"])
+    model, tokenizer = load_model(cfg["project"]["model_name"], adapter, cfg["quantization"],
+                                  cfg["project"].get("model_revision"))
     print(predict(model, tokenizer, args.sentence, cfg["generation"]))
 
 

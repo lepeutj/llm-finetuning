@@ -38,14 +38,17 @@ def main():
         }
     train_data = Dataset.from_list([convert(row) for row in source])
     validation_data = Dataset.from_list([convert(row) for row in read_jsonl(cfg["data"]["validation_path"])])
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    revision = cfg["project"].get("model_revision")
+    tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
     if not tokenizer.chat_template:
         raise ValueError(f"{model_name} has no tokenizer chat template; choose an instruction/chat model")
     if tokenizer.eos_token is None:
         raise ValueError(f"{model_name} has no EOS token")
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(model_name, **quantization_options(cfg["quantization"]))
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name, revision=revision, **quantization_options(cfg["quantization"])
+    )
     if not torch.cuda.is_available():
         print("CUDA is unavailable. CPU training may be very slow; try --max-steps 1 first.")
     output_dir = run_directory(cfg) / "adapter"

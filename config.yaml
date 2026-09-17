@@ -4,6 +4,8 @@ project:
   # Hugging Face model ID. Use the same checkpoint for baseline and LoRA.
   # Change to Qwen/Qwen2.5-1.5B-Instruct for a lighter run.
   model_name: Qwen/Qwen2.5-3B-Instruct
+  # Optional Hugging Face commit hash or revision. null follows the latest main.
+  model_revision: null
 
 quantization:
   # none: FP16 on CUDA / FP32 on CPU; int8: LLM.int8; nf4/fp4: 4-bit.

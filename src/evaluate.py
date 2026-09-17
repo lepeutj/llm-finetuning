@@ -32,7 +32,9 @@ def main():
     adapter = run_dir / "adapter"
     if not (adapter / "adapter_config.json").exists():
         parser.error(f"Adapter missing at {adapter}; run python -m src.train first")
-    model, tokenizer = load_model(cfg["project"]["model_name"], adapter=adapter, quantization=cfg["quantization"])
+    model, tokenizer = load_model(cfg["project"]["model_name"], adapter=adapter,
+                                  quantization=cfg["quantization"],
+                                  revision=cfg["project"].get("model_revision"))
     fine_tuned = []
     for index, row in enumerate(test, 1):
         fine_tuned.append({"input": row["input"], "reference": row["output"],
