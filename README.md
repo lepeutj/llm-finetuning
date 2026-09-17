@@ -110,13 +110,3 @@ results/                    Local outputs (ignored by Git)
 
 The data is synthetic and formulaic. It can establish that the pipeline runs and expose simple extraction errors, but it cannot establish production reliability. Use validation for tuning and reserve the test set for final comparison. Before production use, add human-written test data, reliability and latency measurements, failure handling, and a model deployment plan. The fast unit tests and GitHub Actions workflow do not download model weights; the real GPU smoke run remains a separate check.
 
-## Publish from your computer
-
-The repository contains only code and synthetic data; generated model files under `results/` and local environments are ignored. After creating an empty GitHub repository, run the following from this directory:
-
-```powershell
-git remote add origin https://github.com/YOUR_USERNAME/llm-finetuning-demo.git
-git push -u origin main
-```
-
-The local repository is committed and ready for that push. GitHub may prompt you to authenticate. Check the 3B model's separate license before publishing any derived weights; model weights are not in this repository.
