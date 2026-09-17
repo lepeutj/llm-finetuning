@@ -5,9 +5,13 @@ import re
 import tempfile
 import unittest
 import argparse
+import contextlib
+import sys
+from types import SimpleNamespace
 from pathlib import Path
+from unittest.mock import patch
 
-from src.common import lora_target_modules, messages, run_directory, selected_config
+from src.common import lora_target_modules, messages, predict, run_directory, selected_config
 from src.metrics import parse_prediction, score
 from src.evaluate import _baseline
 from src.prepare_dataset import FIELDS, HARD_TEMPLATES, prepare
@@ -58,6 +62,38 @@ class DatasetTests(unittest.TestCase):
 
 
 class MetricTests(unittest.TestCase):
+    def test_inference_does_not_duplicate_chat_special_tokens(self):
+        class Encoded(dict):
+            def to(self, device):
+                return self
+
+        class Tokenizer:
+            eos_token_id = 1
+
+            def apply_chat_template(self, turns, **kwargs):
+                self.asserted_turns = turns
+                return "<chat>"
+
+            def __call__(self, text, **kwargs):
+                self.tokenize_options = kwargs
+                return Encoded(input_ids=SimpleNamespace(shape=(1, 2)))
+
+            def decode(self, tokens, **kwargs):
+                return "{}"
+
+        class Output:
+            def __getitem__(self, key):
+                return [3]
+
+        tokenizer = Tokenizer()
+        model = SimpleNamespace(device="cpu", generate=lambda **kwargs: Output())
+        with patch.dict(sys.modules, {"torch": SimpleNamespace(inference_mode=contextlib.nullcontext)}):
+            self.assertEqual(predict(model, tokenizer, "A passage", {
+                "max_new_tokens": 32, "do_sample": False,
+            }), "{}")
+        self.assertEqual(tokenizer.tokenize_options,
+                         {"return_tensors": "pt", "add_special_tokens": False})
+
     def test_strict_json_and_scores(self):
         reference = {"name": "Paul Martin", "job": "ingénieur", "company": "Safran",
                      "city": "Bordeaux", "since": 2021}

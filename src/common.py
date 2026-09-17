@@ -9,6 +9,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 FIELDS = ("name", "job", "company", "city", "since")
+# Increment when prompt formatting or scoring semantics change so old results
+# cannot be silently compared with predictions from a different pipeline.
+PIPELINE_VERSION = 2
 SYSTEM_PROMPT = (
     "Extract the person's current employment from the passage. Ignore previous jobs, "
     "previous locations, and unrelated dates. "
@@ -43,6 +46,7 @@ def write_jsonl(value, rows):
 
 def experiment_identity(settings):
     return {
+        "pipeline_version": PIPELINE_VERSION,
         "model_name": settings["project"]["model_name"],
         "model_revision": settings["project"].get("model_revision"),
         "quantization": settings["quantization"],
@@ -160,7 +164,7 @@ def predict(model, tokenizer, sentence, settings, examples=None):
     import torch
 
     text = tokenizer.apply_chat_template(messages(sentence, examples), tokenize=False, add_generation_prompt=True)
-    encoded = tokenizer(text, return_tensors="pt").to(model.device)
+    encoded = tokenizer(text, return_tensors="pt", add_special_tokens=False).to(model.device)
     with torch.inference_mode():
         output = model.generate(
             **encoded,

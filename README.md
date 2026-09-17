@@ -70,6 +70,8 @@ A smoke test verifies model loading, data formatting, adapter saving, and scorin
 
 `Valid JSON` requires one JSON object with exactly the five keys and their types; `since` accepts an integer or `null`. `Exact match` requires all five values to match. Per-field F1 treats each field value as an exact categorical prediction; missing or malformed responses score zero. `Global F1` is the micro average across fields and therefore equals field accuracy in this single-value setup. `since_missing_accuracy` reports how often a missing current start year is correctly returned as `null`; `since_present_accuracy` scores known years. Metrics are also broken down by tags such as `missing` and `relative`. Matching is case-sensitive and does not normalize accents or whitespace. Scores are produced from model predictions, never entered manually.
 
+Run manifests include a pipeline version. When prompt formatting or metric semantics change, results from older runs are rejected; rerun the baselines and training commands to obtain a comparable experiment.
+
 If zero-shot already performs as well as LoRA, that is a valid conclusion: this task may not justify training. Do not tune on the hard test. Use validation and, for a stronger claim, collect independently written passages and compare on those later.
 
 ## Model and training choices
