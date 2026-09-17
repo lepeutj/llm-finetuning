@@ -31,6 +31,7 @@ def main():
     import torch
 
     print(f"PyTorch: {torch.__version__}")
+    print(f"PyTorch CUDA runtime: {torch.version.cuda or 'none (CPU-only build)'}")
     if torch.cuda.is_available():
         properties = torch.cuda.get_device_properties(0)
         print(f"CUDA GPU: {properties.name} ({properties.total_memory / (1024 ** 3):.1f} GiB VRAM)")
@@ -38,6 +39,10 @@ def main():
         print(f"Compute capability: {capability[0]}.{capability[1]}")
     else:
         print("CUDA GPU: unavailable")
+        if torch.version.cuda is None:
+            print("Install a CUDA-enabled PyTorch wheel in this Python environment before using NF4.")
+        else:
+            print("PyTorch has CUDA support but cannot access the GPU; check the NVIDIA driver and environment.")
     if cfg["quantization"]["mode"] != "none":
         installed = importlib.util.find_spec("bitsandbytes") is not None
         print(f"bitsandbytes: {'installed' if installed else 'MISSING'}")

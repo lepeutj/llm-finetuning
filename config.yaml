@@ -19,10 +19,12 @@ data:
   train_path: data/train.jsonl
   validation_path: data/validation.jsonl
   test_path: data/test.jsonl
+  easy_test_path: data/easy_test.jsonl
   # Each generated example has a distinct full name across all splits.
-  train_size: 600
-  validation_size: 100
-  test_size: 100
+  train_size: 1000
+  validation_size: 150
+  test_size: 300
+  easy_test_size: 100
 
 generation:
   # Maximum tokens in each predicted JSON response.
@@ -44,7 +46,7 @@ training:
   # Adapter learning rate; higher than typical full-weight fine-tuning rates.
   learning_rate: 0.0002
   # Maximum prompt + completion length in tokens.
-  max_seq_length: 256
+  max_seq_length: 384
   # LoRA matrix rank: higher values add capacity and trainable parameters.
   lora_r: 8
   # LoRA update scale is alpha / rank.

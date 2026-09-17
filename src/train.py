@@ -90,7 +90,15 @@ def main():
     trainer.model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
     (output_dir / "experiment_manifest.json").write_text(
-        json.dumps(experiment_identity(cfg), indent=2) + "\n", encoding="utf-8"
+        json.dumps({
+            "identity": experiment_identity(cfg),
+            "training_run": {
+                "max_train_samples": args.max_train_samples,
+                "max_steps": args.max_steps,
+                "train_count": len(source),
+                "smoke_test": args.max_train_samples is not None or args.max_steps is not None,
+            },
+        }, indent=2) + "\n", encoding="utf-8"
     )
     print(f"Saved LoRA adapter to {output_dir}")
 

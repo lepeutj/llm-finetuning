@@ -14,7 +14,7 @@ def parse_prediction(text):
         return None
     if any(not isinstance(value[key], str) for key in FIELDS if key != "since"):
         return None
-    if type(value["since"]) is not int:
+    if value["since"] is not None and type(value["since"]) is not int:
         return None
     return value
 
@@ -24,13 +24,22 @@ def score(rows):
         raise ValueError("Cannot score an empty prediction set")
     valid = exact = 0
     matches = {field: 0 for field in FIELDS}
+    missing_count = present_count = missing_correct = present_correct = 0
     for row in rows:
+        reference = row["reference"]
+        if reference["since"] is None:
+            missing_count += 1
+        else:
+            present_count += 1
         predicted = parse_prediction(row["prediction"])
         if predicted is None:
             continue
         valid += 1
-        reference = row["reference"]
         exact += predicted == reference
+        if reference["since"] is None:
+            missing_correct += predicted["since"] is None
+        else:
+            present_correct += predicted["since"] == reference["since"]
         for field in FIELDS:
             matches[field] += predicted[field] == reference[field]
     n = len(rows)
@@ -43,4 +52,12 @@ def score(rows):
         "exact_match": exact / n,
         "field_f1": {field: matches[field] / n for field in FIELDS},
         "global_f1": sum(matches.values()) / (n * len(FIELDS)),
+        "since_missing_accuracy": missing_correct / missing_count if missing_count else None,
+        "since_present_accuracy": present_correct / present_count if present_count else None,
+        "since_missing_count": missing_count,
     }
+
+
+def score_by_tag(rows):
+    tags = sorted({tag for row in rows for tag in row.get("tags", [])})
+    return {tag: score([row for row in rows if tag in row.get("tags", [])]) for tag in tags}

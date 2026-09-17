@@ -10,9 +10,11 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 FIELDS = ("name", "job", "company", "city", "since")
 SYSTEM_PROMPT = (
-    "Extract employment information from the French sentence. "
+    "Extract the person's current employment from the passage. Ignore previous jobs, "
+    "previous locations, and unrelated dates. "
     "Return exactly one JSON object with the keys name, job, company, city, since. "
-    "Use an integer for since. Do not include explanations or Markdown."
+    "Use an integer for since when the start year is stated or can be calculated. "
+    "If the start year is not provided, use null. Do not include explanations or Markdown."
 )
 
 
@@ -47,7 +49,7 @@ def experiment_identity(settings):
         "seed": settings["project"]["seed"],
         "data_sha256": {
             split: hashlib.sha256(path(settings["data"][f"{split}_path"]).read_bytes()).hexdigest()
-            for split in ("train", "validation", "test")
+            for split in ("train", "validation", "test", "easy_test")
         },
     }
 
@@ -91,10 +93,19 @@ def lora_target_modules(value):
     raise ValueError("training.lora_target_modules must be a nonempty list or 'all-linear'")
 
 
-def messages(sentence):
+def messages(sentence, examples=None):
     # Some instruction models do not accept a separate system role. A single
     # user turn keeps training and inference prompts portable across families.
-    return [{"role": "user", "content": f"{SYSTEM_PROMPT}\n\nSentence:\n{sentence}"}]
+    turns = []
+    for index, example in enumerate(examples or []):
+        prefix = f"{SYSTEM_PROMPT}\n\n" if index == 0 else ""
+        turns.extend([
+            {"role": "user", "content": f"{prefix}Passage:\n{example['input']}"},
+            {"role": "assistant", "content": json.dumps(example["output"], ensure_ascii=False)},
+        ])
+    prefix = f"{SYSTEM_PROMPT}\n\n" if not turns else ""
+    turns.append({"role": "user", "content": f"{prefix}Passage:\n{sentence}"})
+    return turns
 
 
 def quantization_options(settings):
@@ -145,10 +156,10 @@ def load_model(model_name, adapter=None, quantization=None, revision=None):
     return model, tokenizer
 
 
-def predict(model, tokenizer, sentence, settings):
+def predict(model, tokenizer, sentence, settings, examples=None):
     import torch
 
-    text = tokenizer.apply_chat_template(messages(sentence), tokenize=False, add_generation_prompt=True)
+    text = tokenizer.apply_chat_template(messages(sentence, examples), tokenize=False, add_generation_prompt=True)
     encoded = tokenizer(text, return_tensors="pt").to(model.device)
     with torch.inference_mode():
         output = model.generate(
