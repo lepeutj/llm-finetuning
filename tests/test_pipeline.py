@@ -155,7 +155,7 @@ class RunSelectionTests(unittest.TestCase):
         default = selected_config(Arguments())
         original_dir = run_directory(default)
         another = selected_config(Arguments())
-        another["project"]["model_name"] = "Qwen/Qwen2.5-1.5B-Instruct"
+        another["project"]["model_name"] = "Qwen/Qwen2.5-0.5B-Instruct"
         self.assertNotEqual(original_dir, run_directory(another))
         another["project"]["model_name"] = default["project"]["model_name"]
         another["quantization"]["mode"] = "int8"

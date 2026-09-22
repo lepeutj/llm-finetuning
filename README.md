@@ -1,6 +1,6 @@
 # LLM fine-tuning experiment: extraction with distractors and missing values
 
-This repository compares zero-shot prompting, three-shot prompting, and QLoRA on a held-out information-extraction task. The default model is [Qwen2.5-3B-Instruct](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct); `--model` also accepts another compatible Hugging Face model ID or a local Transformers model directory. The text passages are French and English. Instructions and documentation are in English.
+This repository compares zero-shot prompting, three-shot prompting, and QLoRA on a held-out information-extraction task. The default model is [Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct); `--model` also accepts another compatible Hugging Face model ID or a local Transformers model directory. The text passages are French and English. Instructions and documentation are in English.
 
 The output schema is always `{"name": string, "job": string, "company": string, "city": string, "since": integer|null}`. The goal is to extract **current** employment. An earlier date or employer must not be mistaken for the current one. For example:
 
@@ -12,36 +12,60 @@ Output: {"name":"Jean Dupont","job":"backend developer","company":"Airbus","city
 
 If the passage mentions only the year of a previous job, `since` must be `null`. These examples are synthetic and still have limited linguistic diversity. They are a controlled experiment, not a production benchmark.
 
-## Run on a Windows CUDA computer
+## Run on Google Cloud
 
-Use Python 3.10 or 3.11. The defaults target one NVIDIA GPU with about 8 GB of **VRAM**: NF4 quantization, microbatch size 1, sequence length 384, and gradient checkpointing. This is not a promise that every 8 GB card will fit; drivers, other GPU processes, and system RAM matter. Start with Qwen 1.5B if necessary.
+The recommended first machine is an Ubuntu Deep Learning VM with one NVIDIA T4 (16 GB VRAM), four vCPUs, and at least 80 GB of disk. Qwen 1.5B with NF4 is deliberately conservative for this GPU. A T4 is widely available and sufficient for this experiment; use an L4 only when faster training is worth the additional cost. Confirm that the selected zone has GPU capacity and that the project has GPU quota.
 
-From the repository root in PowerShell:
+From Cloud Shell or a computer with `gcloud`, this example creates the VM in Belgium. Change the project, zone, or machine name as needed:
 
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-python -m pip install -r requirements.txt
-python -m pip install bitsandbytes
-python -m src.prepare_dataset
-python -m src.check_setup
+```bash
+gcloud config set project YOUR_PROJECT_ID
+gcloud compute instances create llm-finetuning \
+  --zone=europe-west1-b \
+  --machine-type=n1-standard-4 \
+  --accelerator=type=nvidia-tesla-t4,count=1 \
+  --maintenance-policy=TERMINATE \
+  --image-family=pytorch-2-9-cu129-ubuntu-2204-nvidia-580 \
+  --image-project=deeplearning-platform-release \
+  --boot-disk-size=80GB \
+  --metadata=install-nvidia-driver=True
 ```
 
-The CUDA 12.4 wheel command above is from [PyTorch's official 2.6.0 instructions](https://docs.pytorch.org/get-started/previous-versions/). Choose a wheel appropriate for your driver and machine. `bitsandbytes: installed` alone does **not** mean CUDA is available to PyTorch. `check_setup` reports the Python version, PyTorch build, bundled CUDA runtime, detected GPU and VRAM. You can also verify directly:
+Google's [Deep Learning VM images](https://cloud.google.com/deep-learning-vm/docs/images) include the ML stack and NVIDIA driver. GPU availability varies by [region and zone](https://cloud.google.com/compute/docs/regions-zones/gpu-regions-zones). After the VM starts, connect and install the repository in an isolated environment:
 
-```powershell
-python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())"
+```bash
+gcloud compute ssh llm-finetuning --zone=europe-west1-b
+git clone https://github.com/lepeutj/llm-finetuning.git
+cd llm-finetuning
+bash setup_gcp.sh
+source .venv/bin/activate
 ```
 
-The final value must be `True` for NF4 in this demo. If it is `False` and `torch.version.cuda` is `None`, your virtual environment has a CPU-only PyTorch wheel. If a CUDA runtime is present but the GPU is unavailable, check the NVIDIA driver, GPU visibility, and that the commands use the same `.venv`. Run `nvidia-smi` to inspect the driver. On other operating systems, follow [PyTorch's install selector](https://pytorch.org/get-started/locally/) instead of copying the Windows command.
+`setup_gcp.sh` first verifies `nvidia-smi`, then creates `.venv`, force-installs the CUDA-enabled PyTorch wheel, installs the pinned Hugging Face stack, runs `pip check`, prepares the dataset, imports the actual training APIs, and allocates a CUDA tensor. This prevents a system Python package or CPU-only PyTorch build from producing a misleading successful installation. `torchvision` and `torchaudio` are absent because this is a text-only project.
+
+If the environment becomes inconsistent, rebuild only the local virtual environment:
+
+```bash
+bash setup_gcp.sh --recreate
+```
+
+If setup stops before package installation, fix `nvidia-smi` or the VM configuration first. If it reports `none (CPU-only build)`, recreate the environment with the command above. The VM should be stopped when it is idle to avoid ongoing compute charges.
+
+## Small model choices
+
+| Model | Suggested use | Expected tradeoff |
+| --- | --- | --- |
+| `Qwen/Qwen2.5-0.5B-Instruct` | Fastest pipeline and training demonstration | Lowest memory use, but likely weaker extraction quality |
+| `Qwen/Qwen2.5-1.5B-Instruct` | Recommended first complete experiment | Better balance for an 8 GB GPU |
+| `Qwen/Qwen2.5-3B-Instruct` | Follow-up comparison | Better base capability, longer runs, tighter memory margin |
+
+The Qwen2.5 instruction checkpoints use the same model family and an Apache 2.0 license. A useful second portfolio experiment is to run the same fixed train/test protocol at all three sizes. This separates gains from model scale, prompting, and QLoRA without introducing another dataset or scoring pipeline.
 
 ## Experiment commands
 
 Run each baseline on the **full** held-out set before training:
 
-```powershell
+```bash
 python -m src.baseline --split easy --strategy zero
 python -m src.baseline --split hard --strategy zero
 python -m src.baseline --split hard --strategy few
@@ -55,7 +79,7 @@ The hard split compares zero-shot, few-shot, and LoRA on the same 300 examples. 
 
 For a fast wiring check, use the following commands instead. The resulting `comparison_hard.json` is marked `smoke_test: true`:
 
-```powershell
+```bash
 python -m src.baseline --split hard --strategy zero --limit 3
 python -m src.baseline --split hard --strategy few --limit 3
 python -m src.train --max-train-samples 16 --max-steps 1
@@ -80,8 +104,8 @@ If zero-shot already performs as well as LoRA, that is a valid conclusion: this 
 
 `--model`, `--revision`, and `--quantization` override the config on all model commands. Use **identical overrides** for baseline, training, and evaluation. For example:
 
-```powershell
-$model = 'Qwen/Qwen2.5-1.5B-Instruct'
+```bash
+model='Qwen/Qwen2.5-1.5B-Instruct'
 python -m src.baseline --model $model --quantization nf4 --split hard --strategy zero
 python -m src.baseline --model $model --quantization nf4 --split hard --strategy few
 python -m src.train --model $model --quantization nf4

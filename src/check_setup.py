@@ -1,6 +1,7 @@
 """Report local Python, PyTorch, CUDA, and quantization readiness."""
 
-import importlib.util
+import importlib
+import importlib.metadata
 import platform
 import sys
 
@@ -22,13 +23,28 @@ def main():
     if sys.version_info < (3, 10):
         print("FAIL: Python 3.10 or newer is required for the specified dependencies.")
         ready = False
-    for package in ("torch", "transformers", "datasets", "peft", "trl", "accelerate"):
-        installed = importlib.util.find_spec(package) is not None
-        print(f"{package}: {'installed' if installed else 'MISSING'}")
-        ready &= installed
-    if not importlib.util.find_spec("torch"):
+    packages = ("torch", "transformers", "datasets", "peft", "trl", "accelerate")
+    loaded = {}
+    for package in packages:
+        try:
+            loaded[package] = importlib.import_module(package)
+            version = importlib.metadata.version(package)
+            print(f"{package}: {version} (import OK)")
+        except Exception as error:  # Diagnostic command: report binary/API import failures cleanly.
+            print(f"{package}: FAIL to import: {error}")
+            ready = False
+    if "torch" not in loaded:
         raise SystemExit(1)
-    import torch
+    torch = loaded["torch"]
+
+    try:
+        from peft import LoraConfig  # noqa: F401
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig  # noqa: F401
+        from trl import SFTConfig, SFTTrainer  # noqa: F401
+        print("Training API imports: OK")
+    except Exception as error:
+        print(f"Training API imports: FAIL: {error}")
+        ready = False
 
     print(f"PyTorch: {torch.__version__}")
     print(f"PyTorch CUDA runtime: {torch.version.cuda or 'none (CPU-only build)'}")
@@ -37,6 +53,13 @@ def main():
         print(f"CUDA GPU: {properties.name} ({properties.total_memory / (1024 ** 3):.1f} GiB VRAM)")
         capability = torch.cuda.get_device_capability(0)
         print(f"Compute capability: {capability[0]}.{capability[1]}")
+        try:
+            probe = torch.ones(1, device="cuda")
+            print(f"CUDA tensor test: OK ({probe.device})")
+            del probe
+        except RuntimeError as error:
+            print(f"CUDA tensor test: FAIL: {error}")
+            ready = False
     else:
         print("CUDA GPU: unavailable")
         if torch.version.cuda is None:
@@ -44,9 +67,12 @@ def main():
         else:
             print("PyTorch has CUDA support but cannot access the GPU; check the NVIDIA driver and environment.")
     if cfg["quantization"]["mode"] != "none":
-        installed = importlib.util.find_spec("bitsandbytes") is not None
-        print(f"bitsandbytes: {'installed' if installed else 'MISSING'}")
-        ready &= installed
+        try:
+            importlib.import_module("bitsandbytes")
+            print(f"bitsandbytes: {importlib.metadata.version('bitsandbytes')} (import OK)")
+        except Exception as error:
+            print(f"bitsandbytes: FAIL to import: {error}")
+            ready = False
         if not torch.cuda.is_available():
             print("FAIL: This demo requires CUDA for quantized modes; use --quantization none on CPU.")
             ready = False

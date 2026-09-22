@@ -2,8 +2,8 @@ project:
   # Controls data shuffling and training randomness. Keep fixed for repeatable runs.
   seed: 42
   # Hugging Face model ID. Use the same checkpoint for baseline and LoRA.
-  # Change to Qwen/Qwen2.5-1.5B-Instruct for a lighter run.
-  model_name: Qwen/Qwen2.5-3B-Instruct
+  # The 1.5B checkpoint is the recommended first run on an 8 GB GPU.
+  model_name: Qwen/Qwen2.5-1.5B-Instruct
   # Optional Hugging Face commit hash or revision. null follows the latest main.
   model_revision: null
 
