@@ -49,6 +49,8 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         model_name, revision=revision, **quantization_options(cfg["quantization"])
     )
+    if settings["gradient_checkpointing"]:
+        model.config.use_cache = False
     if not torch.cuda.is_available():
         print("CUDA is unavailable. CPU training may be very slow; try --max-steps 1 first.")
     output_dir = run_directory(cfg) / "adapter"

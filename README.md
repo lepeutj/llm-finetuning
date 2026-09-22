@@ -63,7 +63,19 @@ The Qwen2.5 instruction checkpoints use the same model family and an Apache 2.0 
 
 ## Experiment commands
 
-Run each baseline on the **full** held-out set before training:
+Start with the smoke run. It downloads the model, produces three zero-shot and few-shot predictions, performs one optimizer step, reloads the saved adapter, and creates a comparison marked as a smoke test:
+
+```bash
+bash run_experiment.sh smoke
+```
+
+Once that succeeds, launch the complete experiment:
+
+```bash
+bash run_experiment.sh full
+```
+
+The full runner executes these commands in order:
 
 ```bash
 python -m src.baseline --split easy --strategy zero
