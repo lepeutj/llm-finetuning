@@ -15,13 +15,17 @@ ACTION_TYPES = {"tool_call", "respond", "clarify"}
 
 
 def add_arguments(parser):
+    parser.add_argument("--config", default=str(ROOT / "tool_config.yaml"))
     parser.add_argument("--model")
     parser.add_argument("--revision")
     parser.add_argument("--quantization", choices=("none", "int8", "nf4", "fp4"))
 
 
 def settings(args):
-    cfg = yaml.safe_load((ROOT / "tool_config.yaml").read_text(encoding="utf-8"))
+    config_path = Path(args.config)
+    if not config_path.is_absolute():
+        config_path = ROOT / config_path
+    cfg = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     if args.model:
         cfg["project"]["model_name"] = args.model
         if not args.revision:

@@ -20,7 +20,7 @@ def main():
         samples = []
         for row in rows:
             samples.append({"prompt": messages(row), "completion": [{"role": "assistant", "content": json.dumps(row["expected_action"], ensure_ascii=False)}]})
-            if row["expected_action"]["type"] == "tool_call":
+            if row["expected_action"]["type"] == "tool_call" and len(row["trajectory"]) >= 4:
                 final = row["trajectory"][-1]["content"]
                 samples.append({"prompt": followup_messages(row), "completion": [{"role": "assistant", "content": json.dumps(final, ensure_ascii=False)}]})
         return samples

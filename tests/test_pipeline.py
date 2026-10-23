@@ -16,6 +16,7 @@ from src.metrics import parse_prediction, score
 from src.evaluate import _baseline
 from src.prepare_dataset import FIELDS, HARD_TEMPLATES, prepare
 from src.prepare_tool_dataset import build
+from src.prepare_hermes_dataset import normalize_row
 from src.tool_runtime import parse_action, score as score_tools
 from src.tool_catalog import TOOLS
 
@@ -172,6 +173,33 @@ class RunSelectionTests(unittest.TestCase):
 
 
 class ToolCallingTests(unittest.TestCase):
+    def test_hermes_single_call_normalization(self):
+        raw = {"id": "one", "category": "weather", "tools": json.dumps([{
+            "type": "function", "function": {"name": "weather", "description": "Forecast",
+            "parameters": {"type": "object", "properties": {"city": {"type": "string"}},
+                           "required": ["city"], "additionalProperties": False}}}]),
+            "conversations": [{"from": "system", "value": "system"},
+                              {"from": "human", "value": "Weather in Paris?"},
+                              {"from": "gpt", "value": '<tool_call>{"name":"weather","arguments":{"city":"Paris"}}</tool_call>'}]}
+        row = normalize_row(raw)
+        self.assertEqual(row["expected_action"]["name"], "weather")
+        self.assertEqual(row["request"], "Weather in Paris?")
+
+    def test_hermes_rejects_schema_violation(self):
+        raw = {"tools": "[{'name':'weather','parameters':{'type':'object','properties':{'city':{'type':'string'}},'required':['city']}}]",
+               "conversations": [{"from": "human", "value": "Weather?"},
+                                 {"from": "gpt", "value": "<tool_call>{'name':'weather','arguments':{}}</tool_call>"}]}
+        with self.assertRaises(ValueError):
+            normalize_row(raw)
+
+    def test_hermes_repairs_documented_nested_name_shape(self):
+        raw = {"tools": "[{'name':'weather','parameters':{'type':'object','properties':{'city':{'type':'string'}},'required':['city']}}]",
+               "conversations": [{"from": "human", "value": "Weather in Paris?"},
+                                 {"from": "gpt", "value": "<tool_call>{'arguments':{'city':'Paris','name':'weather'}}</tool_call>"}]}
+        row = normalize_row(raw)
+        self.assertEqual(row["expected_action"]["arguments"], {"city": "Paris"})
+        self.assertIn("source_shape_repaired", row["tags"])
+
     def test_generator_covers_every_tool_and_complete_trajectories(self):
         rows = build(200, __import__("random").Random(3), "train")
         calls = [row for row in rows if row["expected_action"]["type"] == "tool_call"]

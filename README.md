@@ -54,6 +54,24 @@ The trainer learns both the routing action before execution and the final respon
   --model Qwen/Qwen2.5-0.5B-Instruct --quantization nf4
 ```
 
+### Hermes dataset experiment with Qwen 1.5B
+
+The external-data experiment downloads the Apache-2.0 [NousResearch Hermes Function Calling V1 dataset](https://huggingface.co/datasets/NousResearch/hermes-function-calling-v1). It strictly normalizes the `func_calling_singleturn` subset, rejects malformed calls and schema violations, creates deterministic train/validation/test splits, and mixes in clarification and direct-response examples. The resulting routing distribution is 60% Hermes calls and 40% balanced negatives.
+
+```bash
+MODEL_ID=Qwen/Qwen2.5-1.5B-Instruct QUANTIZATION=nf4 \
+  bash run_hermes_experiment.sh smoke
+```
+
+After the smoke test succeeds:
+
+```bash
+MODEL_ID=Qwen/Qwen2.5-1.5B-Instruct QUANTIZATION=nf4 \
+  bash run_hermes_experiment.sh full
+```
+
+The prepared files contain 500 training, 100 validation, and 150 test rows. The strict importer uses 450 source calls across the three splits and rejects multi-call, empty-tool, malformed, and schema-invalid source rows. It adds 300 controlled clarification and direct-response examples to obtain a 60/40 routing balance. An import report is written to `data/hermes/`, and results are isolated under `results/hermes/`. The dataset revision is pinned; rerunning the importer uses the Hugging Face cache and produces the same split for the same revision and seed.
+
 ## Structured-extraction experiment
 
 This repository compares zero-shot prompting, three-shot prompting, and QLoRA on a held-out information-extraction task. The default model is [Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct); `--model` also accepts another compatible Hugging Face model ID or a local Transformers model directory. The text passages are French and English. Instructions and documentation are in English.
