@@ -1,4 +1,54 @@
-# LLM fine-tuning experiment: extraction with distractors and missing values
+# Low-compute LLM fine-tuning: tool calling and structured extraction
+
+This repository provides reproducible QLoRA experiments for small instruction models. The primary experiment trains a model to select tools and emit schema-valid arguments from agent trajectories. The original structured-extraction benchmark remains available as a second experiment.
+
+## Tool-calling experiment
+
+Each generated trajectory stores the available JSON Schema tools, user request, expected action, simulated tool result, and final assistant response. The router learns one of three actions:
+
+```json
+{"type":"tool_call","name":"get_weather","arguments":{"city":"Paris","date":"tomorrow"}}
+```
+
+```json
+{"type":"clarify","question":"Which city should I use?"}
+```
+
+```json
+{"type":"respond","content":"JSON stands for JavaScript Object Notation."}
+```
+
+The bundled tools cover weather, currency conversion, web search, calculation, and file discovery. Their implementations are deterministic simulations: dataset creation and evaluation never invoke a live service or modify files. The generated splits contain 1,200 training, 150 validation, and 300 held-out test trajectories. Test requests use paraphrase templates absent from training.
+
+Run a small end-to-end check:
+
+```bash
+MODEL_PROFILE=qwen-0.5b QUANTIZATION=nf4 bash run_tool_experiment.sh smoke
+```
+
+Run the complete benchmark:
+
+```bash
+MODEL_PROFILE=qwen-0.5b QUANTIZATION=nf4 bash run_tool_experiment.sh full
+```
+
+Metrics include valid action rate, action-type accuracy, tool selection accuracy, exact arguments, executable call rate, no-call accuracy, and overall exact match. Adapters and predictions are stored below `results/tool_calling/`.
+
+Test one request after training:
+
+```bash
+.venv/bin/python -m src.tool_inference "What is the weather in Paris tomorrow?" \
+  --model Qwen/Qwen2.5-0.5B-Instruct --quantization nf4
+```
+
+The trainer learns both the routing action before execution and the final response after receiving a tool result. Run `python -m src.tool_agent` to exercise that complete loop. Replace or extend `src/tool_catalog.py` and the data importer to train on application-specific traces; multi-step planning remains a future extension.
+
+```bash
+.venv/bin/python -m src.tool_agent "Convert 125 USD to EUR" \
+  --model Qwen/Qwen2.5-0.5B-Instruct --quantization nf4
+```
+
+## Structured-extraction experiment
 
 This repository compares zero-shot prompting, three-shot prompting, and QLoRA on a held-out information-extraction task. The default model is [Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct); `--model` also accepts another compatible Hugging Face model ID or a local Transformers model directory. The text passages are French and English. Instructions and documentation are in English.
 

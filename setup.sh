@@ -73,6 +73,7 @@ venv_python="${venv_dir}/bin/python"
 
 cd "${repo_root}"
 "${venv_python}" -m src.prepare_dataset
+"${venv_python}" -m src.prepare_tool_dataset
 if [[ "${backend}" == "cuda" ]]; then
     "${venv_python}" -m src.check_setup
 else

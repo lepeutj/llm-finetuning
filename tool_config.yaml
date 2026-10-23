@@ -1,0 +1,33 @@
+project:
+  seed: 42
+  model_name: Qwen/Qwen2.5-0.5B-Instruct
+  model_revision: null
+
+quantization:
+  mode: nf4
+  double_quant: true
+
+data:
+  train_path: data/tool_calling/train.jsonl
+  validation_path: data/tool_calling/validation.jsonl
+  test_path: data/tool_calling/test.jsonl
+  train_size: 1200
+  validation_size: 150
+  test_size: 300
+
+generation:
+  max_new_tokens: 160
+  do_sample: false
+
+training:
+  results_dir: results/tool_calling
+  num_train_epochs: 2
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+  gradient_checkpointing: true
+  learning_rate: 0.0002
+  max_seq_length: 768
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  lora_target_modules: [q_proj, v_proj]

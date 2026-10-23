@@ -118,7 +118,7 @@ def quantization_options(settings):
 
     mode = settings.get("mode", "none")
     if mode == "none":
-        return {"torch_dtype": torch.float16 if torch.cuda.is_available() else torch.float32}
+        return {"dtype": torch.float16 if torch.cuda.is_available() else torch.float32}
     if mode not in ("int8", "nf4", "fp4"):
         raise ValueError(f"Unknown quantization mode: {mode}. Choose none, int8, nf4, or fp4")
     if not torch.cuda.is_available():
@@ -139,7 +139,7 @@ def quantization_options(settings):
             bnb_4bit_compute_dtype=compute_dtype,
             bnb_4bit_use_double_quant=bool(settings.get("double_quant", True)),
         )
-    return {"quantization_config": quantization, "device_map": {"": torch.cuda.current_device()}, "torch_dtype": compute_dtype}
+    return {"quantization_config": quantization, "device_map": {"": torch.cuda.current_device()}, "dtype": compute_dtype}
 
 
 def load_model(model_name, adapter=None, quantization=None, revision=None):

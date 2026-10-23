@@ -15,6 +15,9 @@ from src.common import lora_target_modules, messages, predict, run_directory, se
 from src.metrics import parse_prediction, score
 from src.evaluate import _baseline
 from src.prepare_dataset import FIELDS, HARD_TEMPLATES, prepare
+from src.prepare_tool_dataset import build
+from src.tool_runtime import parse_action, score as score_tools
+from src.tool_catalog import TOOLS
 
 
 class DatasetTests(unittest.TestCase):
@@ -166,6 +169,35 @@ class RunSelectionTests(unittest.TestCase):
         another = selected_config(Arguments())
         another["project"]["model_revision"] = "specific-commit"
         self.assertNotEqual(original_dir, run_directory(another))
+
+
+class ToolCallingTests(unittest.TestCase):
+    def test_generator_covers_every_tool_and_complete_trajectories(self):
+        rows = build(200, __import__("random").Random(3), "train")
+        calls = [row for row in rows if row["expected_action"]["type"] == "tool_call"]
+        self.assertEqual({tool["name"] for tool in TOOLS},
+                         {row["expected_action"]["name"] for row in calls})
+        self.assertTrue(all([turn["role"] for turn in row["trajectory"]] ==
+                            ["user", "assistant", "tool", "assistant"] for row in calls))
+
+    def test_tool_action_schema_validation(self):
+        good = {"type": "tool_call", "name": "get_weather",
+                "arguments": {"city": "Paris", "date": "tomorrow"}}
+        self.assertEqual(parse_action(json.dumps(good), TOOLS), good)
+        bad = {"type": "tool_call", "name": "get_weather", "arguments": {"city": "Paris"}}
+        self.assertIsNone(parse_action(json.dumps(bad), TOOLS))
+        self.assertIsNone(parse_action('{"type":"tool_call","name":"unknown","arguments":{}}', TOOLS))
+
+    def test_tool_metrics_distinguish_routing_and_arguments(self):
+        expected = {"type": "tool_call", "name": "get_weather",
+                    "arguments": {"city": "Paris", "date": "tomorrow"}}
+        wrong_arguments = dict(expected, arguments={"city": "Lyon", "date": "tomorrow"})
+        rows = [{"tools": TOOLS, "reference": expected, "prediction": json.dumps(expected)},
+                {"tools": TOOLS, "reference": expected, "prediction": json.dumps(wrong_arguments)}]
+        metrics = score_tools(rows)
+        self.assertEqual(metrics["valid_action"], 1.0)
+        self.assertEqual(metrics["tool_accuracy"], 1.0)
+        self.assertEqual(metrics["argument_exact_match"], 0.5)
 
 
 if __name__ == "__main__":
