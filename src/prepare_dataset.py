@@ -13,7 +13,7 @@ from pathlib import Path
 import yaml
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).absolute().parents[1]
 FIELDS = ("name", "job", "company", "city", "since")
 FIRST_NAMES = (
     "Paul", "Léa", "Karim", "Camille", "Hugo", "Inès", "Thomas", "Sarah",

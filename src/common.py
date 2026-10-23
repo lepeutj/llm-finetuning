@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).absolute().parents[1]
 FIELDS = ("name", "job", "company", "city", "since")
 # Increment when prompt formatting or scoring semantics change so old results
 # cannot be silently compared with predictions from a different pipeline.

@@ -1,5 +1,5 @@
 # Install PyTorch separately with the wheel matching the target hardware.
-# setup_gcp.sh installs the CUDA 12.4 build before this file.
+# setup.sh installs the hardware-specific PyTorch build before this file.
 transformers==4.57.3
 trl==0.26.1
 peft==0.17.1
