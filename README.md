@@ -12,6 +12,12 @@ Output: {"name":"Jean Dupont","job":"backend developer","company":"Airbus","city
 
 If the passage mentions only the year of a previous job, `since` must be `null`. These examples are synthetic and still have limited linguistic diversity. They are a controlled experiment, not a production benchmark.
 
+## Try it without a local GPU
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lepeutj/llm-finetuning/blob/main/notebooks/quickstart_colab.ipynb)
+
+Open the notebook, select a **T4 GPU** runtime, and run all cells. It installs the project in an isolated environment, uses the 0.5B Qwen model with NF4 quantization, runs the full pipeline with one training step, and displays the generated comparison. This is a real end-to-end smoke test; its three evaluation samples are too small to measure whether fine-tuning improves quality.
+
 ## Run on any Linux machine
 
 The code is independent of a cloud provider. It runs on a local Linux workstation, GCP, AWS, Azure, RunPod, or another Linux host with Python 3.10–3.12. CUDA mode requires an NVIDIA driver visible through `nvidia-smi`; the Python environment contains its own pinned PyTorch and Hugging Face packages.
