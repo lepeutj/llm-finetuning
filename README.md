@@ -16,7 +16,7 @@ If the passage mentions only the year of a previous job, `since` must be `null`.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lepeutj/llm-finetuning/blob/main/notebooks/quickstart_colab.ipynb)
 
-Open the notebook, select a **T4 GPU** runtime, and run all cells. It installs the project in an isolated environment, uses the 0.5B Qwen model with NF4 quantization, runs the full pipeline with one training step, and displays the generated comparison. This is a real end-to-end smoke test; its three evaluation samples are too small to measure whether fine-tuning improves quality.
+Open the notebook, select a **T4 GPU** runtime, and run all cells. It provisions Python 3.12 independently of Colab's system Python, installs the project in an isolated environment, uses the 0.5B Qwen model with NF4 quantization, runs the full pipeline with one training step, and displays the generated comparison. This is a real end-to-end smoke test; its three evaluation samples are too small to measure whether fine-tuning improves quality.
 
 ## Run on any Linux machine
 
