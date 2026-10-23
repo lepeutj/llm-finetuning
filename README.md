@@ -70,7 +70,7 @@ MODEL_ID=Qwen/Qwen2.5-1.5B-Instruct QUANTIZATION=nf4 \
   bash run_hermes_experiment.sh full
 ```
 
-The prepared files contain 500 training, 100 validation, and 150 test rows. The strict importer uses 450 source calls across the three splits and rejects multi-call, empty-tool, malformed, and schema-invalid source rows. It adds 300 controlled clarification and direct-response examples to obtain a 60/40 routing balance. An import report is written to `data/hermes/`, and results are isolated under `results/hermes/`. The dataset revision is pinned; rerunning the importer uses the Hugging Face cache and produces the same split for the same revision and seed.
+The prepared files contain 500 training, 100 validation, and 150 test rows. The strict importer uses 440 source calls across the three splits and rejects multi-call, empty-tool, malformed, and schema-invalid source rows. It keeps one example per tool name and assigns tool names to exactly one split, so validation and test measure routing to unseen tools from their descriptions and schemas. It adds 310 controlled clarification and direct-response examples. An import report records source acceptance and verifies zero tool-name overlap. Results are isolated under `results/hermes/`. The dataset revision is pinned; rerunning the importer uses the Hugging Face cache and produces the same split for the same revision and seed.
 
 ## Structured-extraction experiment
 

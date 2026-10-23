@@ -121,24 +121,40 @@ def main():
             accepted.append(normalize_row(raw))
         except (KeyError, TypeError, ValueError):
             rejected += 1
-    rng = random.Random(cfg["project"]["seed"]); rng.shuffle(accepted)
-    plan = {"train": (300, 200), "validation": (60, 40), "test": (90, 60)}
+    rng = random.Random(cfg["project"]["seed"])
+    # Keep one row per tool name so every evaluation tool is unseen during
+    # training. This measures schema-guided generalization rather than tool-name
+    # memorization.
+    rng.shuffle(accepted)
+    distinct = {}
+    for row in accepted:
+        distinct.setdefault(row["expected_action"]["name"], row)
+    tool_disjoint = list(distinct.values()); rng.shuffle(tool_disjoint)
+    plan = {"train": (300, 200), "validation": (50, 50), "test": (90, 60)}
     required = sum(calls for calls, _ in plan.values())
-    if len(accepted) < required:
-        raise RuntimeError(f"Only {len(accepted)} valid rows; {required} required")
+    if len(tool_disjoint) < required:
+        raise RuntimeError(f"Only {len(tool_disjoint)} distinct valid tools; {required} required")
     offset = 0
+    split_tools = {}
     for split, (call_count, negative_count) in plan.items():
-        rows = accepted[offset:offset + call_count]; offset += call_count
+        rows = tool_disjoint[offset:offset + call_count]; offset += call_count
+        split_tools[split] = {row["expected_action"]["name"] for row in rows}
         rows.extend(negatives(negative_count, rng, split)); rng.shuffle(rows)
         target = ROOT / cfg["data"][f"{split}_path"]; target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("w", encoding="utf-8", newline="\n") as handle:
             for row in rows: handle.write(json.dumps(row, ensure_ascii=False) + "\n")
         print(f"{split}: {len(rows)} rows ({call_count} Hermes calls, {negative_count} balanced negatives)")
+    if any(split_tools[left] & split_tools[right] for left in split_tools for right in split_tools
+           if left < right):
+        raise RuntimeError("Tool names overlap across splits")
     (ROOT / "data/hermes/import_report.json").write_text(json.dumps({
         "source": data_cfg["dataset_name"], "subset": data_cfg["dataset_subset"],
         "revision": data_cfg["dataset_revision"],
         "license": "Apache-2.0", "source_rows": len(source), "accepted_rows": len(accepted),
-        "rejected_rows": rejected, "seed": cfg["project"]["seed"]}, indent=2) + "\n", encoding="utf-8")
+        "rejected_rows": rejected, "distinct_valid_tools": len(distinct),
+        "tool_name_overlap_across_splits": 0,
+        "split_tool_counts": {key: len(value) for key, value in split_tools.items()},
+        "seed": cfg["project"]["seed"]}, indent=2) + "\n", encoding="utf-8")
     print(f"Accepted {len(accepted)}/{len(source)} source rows; rejected {rejected} malformed or unsupported rows")
 
 

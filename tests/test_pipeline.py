@@ -227,6 +227,15 @@ class ToolCallingTests(unittest.TestCase):
         self.assertEqual(metrics["tool_accuracy"], 1.0)
         self.assertEqual(metrics["argument_exact_match"], 0.5)
 
+    def test_tool_bias_metrics(self):
+        clarify = {"type": "clarify", "question": "Which city?"}
+        call = {"type": "tool_call", "name": "get_weather",
+                "arguments": {"city": "Paris", "date": "tomorrow"}}
+        rows = [{"tools": TOOLS, "reference": clarify, "prediction": json.dumps(call)}]
+        metrics = score_tools(rows)
+        self.assertEqual(metrics["clarification_accuracy"], 0.0)
+        self.assertEqual(metrics["unnecessary_tool_call_rate"], 1.0)
+
     def test_invalid_no_call_prediction_scores_zero(self):
         row = {"tools": TOOLS, "reference": {"type": "clarify", "question": "Which city?"},
                "prediction": "invalid"}

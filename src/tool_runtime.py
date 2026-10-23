@@ -113,19 +113,25 @@ def score(rows):
     if not n:
         raise ValueError("Cannot score empty predictions")
     valid = type_ok = tool_ok = args_ok = exact = 0
-    calls = no_calls = call_schema_ok = 0
+    calls = no_calls = call_schema_ok = unnecessary_calls = 0
+    clarify_count = respond_count = clarify_correct = respond_correct = 0
     for row in rows:
         expected = row["reference"]
         if expected["type"] == "tool_call":
             calls += 1
         else:
             no_calls += 1
+            clarify_count += expected["type"] == "clarify"
+            respond_count += expected["type"] == "respond"
         predicted = parse_action(row["prediction"], row["tools"])
         if predicted is None:
             continue
         valid += 1
         type_ok += predicted["type"] == expected["type"]
         exact += predicted == expected
+        clarify_correct += expected["type"] == "clarify" and predicted["type"] == "clarify"
+        respond_correct += expected["type"] == "respond" and predicted["type"] == "respond"
+        unnecessary_calls += expected["type"] != "tool_call" and predicted["type"] == "tool_call"
         if expected["type"] == "tool_call":
             if predicted["type"] == "tool_call":
                 call_schema_ok += 1
@@ -135,6 +141,9 @@ def score(rows):
             "exact_match": exact / n, "tool_accuracy": tool_ok / calls if calls else None,
             "argument_exact_match": args_ok / calls if calls else None,
             "executable_call_rate": call_schema_ok / calls if calls else None,
+            "clarification_accuracy": clarify_correct / clarify_count if clarify_count else None,
+            "direct_response_accuracy": respond_correct / respond_count if respond_count else None,
+            "unnecessary_tool_call_rate": unnecessary_calls / no_calls if no_calls else None,
             "no_call_accuracy": sum(parse_action(r["prediction"], r["tools"]) is not None and
                                     parse_action(r["prediction"], r["tools"])["type"] == r["reference"]["type"]
                                     for r in rows if r["reference"]["type"] != "tool_call") / no_calls if no_calls else None}
