@@ -199,6 +199,12 @@ class ToolCallingTests(unittest.TestCase):
         self.assertEqual(metrics["tool_accuracy"], 1.0)
         self.assertEqual(metrics["argument_exact_match"], 0.5)
 
+    def test_invalid_no_call_prediction_scores_zero(self):
+        row = {"tools": TOOLS, "reference": {"type": "clarify", "question": "Which city?"},
+               "prediction": "invalid"}
+        metrics = score_tools([row])
+        self.assertEqual(metrics["no_call_accuracy"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

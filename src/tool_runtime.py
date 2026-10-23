@@ -112,6 +112,10 @@ def score(rows):
     calls = no_calls = call_schema_ok = 0
     for row in rows:
         expected = row["reference"]
+        if expected["type"] == "tool_call":
+            calls += 1
+        else:
+            no_calls += 1
         predicted = parse_action(row["prediction"], row["tools"])
         if predicted is None:
             continue
@@ -119,13 +123,10 @@ def score(rows):
         type_ok += predicted["type"] == expected["type"]
         exact += predicted == expected
         if expected["type"] == "tool_call":
-            calls += 1
             if predicted["type"] == "tool_call":
                 call_schema_ok += 1
                 tool_ok += predicted["name"] == expected["name"]
                 args_ok += predicted["name"] == expected["name"] and predicted["arguments"] == expected["arguments"]
-        else:
-            no_calls += 1
     return {"count": n, "valid_action": valid / n, "action_type_accuracy": type_ok / n,
             "exact_match": exact / n, "tool_accuracy": tool_ok / calls if calls else None,
             "argument_exact_match": args_ok / calls if calls else None,

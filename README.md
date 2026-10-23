@@ -34,6 +34,12 @@ MODEL_PROFILE=qwen-0.5b QUANTIZATION=nf4 bash run_tool_experiment.sh full
 
 Metrics include valid action rate, action-type accuracy, tool selection accuracy, exact arguments, executable call rate, no-call accuracy, and overall exact match. Adapters and predictions are stored below `results/tool_calling/`.
 
+Recompute metrics from saved predictions without loading the model:
+
+```bash
+.venv/bin/python -m src.tool_rescore --model Qwen/Qwen2.5-0.5B-Instruct --quantization nf4
+```
+
 Test one request after training:
 
 ```bash
