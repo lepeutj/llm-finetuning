@@ -2,6 +2,7 @@
 import argparse
 import json
 from .tool_runtime import add_arguments, followup_messages, identity, lora_target_modules, messages, quantization_options, read_rows, run_dir, settings
+from .training_artifacts import save_training_artifacts
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__); add_arguments(parser)
@@ -38,8 +39,17 @@ def main():
                       target_modules=lora_target_modules(s["lora_target_modules"]), bias="none", task_type="CAUSAL_LM")
     trainer = SFTTrainer(model=model, args=training_args, train_dataset=train_data, eval_dataset=validation,
                          peft_config=lora, processing_class=tokenizer)
-    trainer.train(); trainer.model.save_pretrained(output); tokenizer.save_pretrained(output)
+    if torch.cuda.is_available(): torch.cuda.reset_peak_memory_stats()
+    train_result = trainer.train(); trainer.model.save_pretrained(output); tokenizer.save_pretrained(output)
+    trainable, total = trainer.model.get_nb_trainable_parameters()
+    summary = {"trainer_metrics": train_result.metrics, "train_examples": len(train_data),
+               "validation_examples": len(validation), "trainable_parameters": trainable,
+               "total_parameters": total,
+               "trainable_parameter_percent": 100 * trainable / total,
+               "peak_gpu_memory_gib": (torch.cuda.max_memory_allocated() / 1024 ** 3
+                                       if torch.cuda.is_available() else None)}
+    save_training_artifacts(output, trainer.state.log_history, summary)
     (output / "experiment_manifest.json").write_text(json.dumps({"identity": identity(cfg), "smoke_test": bool(args.max_steps or args.max_train_samples)}, indent=2)+"\n", encoding="utf-8")
-    print(f"Saved adapter to {output}")
+    print(f"Saved adapter and training curves to {output}")
 
 if __name__ == "__main__": main()

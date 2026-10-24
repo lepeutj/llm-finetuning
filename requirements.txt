@@ -9,3 +9,4 @@ accelerate>=1.4,<2
 PyYAML>=6,<7
 safetensors>=0.4,<1
 jsonschema>=4.23,<5
+matplotlib>=3.8,<4

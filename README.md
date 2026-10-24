@@ -72,6 +72,8 @@ MODEL_ID=Qwen/Qwen2.5-1.5B-Instruct QUANTIZATION=nf4 \
 
 The prepared files contain 500 training, 100 validation, and 150 test rows. The strict importer uses 440 source calls across the three splits and rejects multi-call, empty-tool, malformed, and schema-invalid source rows. It keeps one example per tool name and assigns tool names to exactly one split, so validation and test measure routing to unseen tools from their descriptions and schemas. It adds 310 controlled clarification and direct-response examples. An import report records source acceptance and verifies zero tool-name overlap. Results are isolated under `results/hermes/`. The dataset revision is pinned; rerunning the importer uses the Hugging Face cache and produces the same split for the same revision and seed.
 
+Every training run saves `training_history.json`, `training_summary.json`, and `training_curves.png` beside the adapter. The summary includes runtime, throughput, trainable parameter counts, and peak allocated GPU memory. The PNG plots training and validation loss, learning rate, and token accuracy against optimizer steps.
+
 ## Structured-extraction experiment
 
 This repository compares zero-shot prompting, three-shot prompting, and QLoRA on a held-out information-extraction task. The default model is [Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct); `--model` also accepts another compatible Hugging Face model ID or a local Transformers model directory. The text passages are French and English. Instructions and documentation are in English.

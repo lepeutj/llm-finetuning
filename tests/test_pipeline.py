@@ -19,6 +19,7 @@ from src.prepare_tool_dataset import build
 from src.prepare_hermes_dataset import normalize_row
 from src.tool_runtime import parse_action, score as score_tools
 from src.tool_catalog import TOOLS
+from src.training_artifacts import series
 
 
 class DatasetTests(unittest.TestCase):
@@ -173,6 +174,12 @@ class RunSelectionTests(unittest.TestCase):
 
 
 class ToolCallingTests(unittest.TestCase):
+    def test_training_series_uses_logged_steps(self):
+        history = [{"loss": 1.0, "step": 10}, {"eval_loss": 0.8, "step": 20},
+                   {"loss": 0.5, "step": 20}]
+        self.assertEqual(series(history, "loss"), [(10, 1.0), (20, 0.5)])
+        self.assertEqual(series(history, "eval_loss"), [(20, 0.8)])
+
     def test_hermes_single_call_normalization(self):
         raw = {"id": "one", "category": "weather", "tools": json.dumps([{
             "type": "function", "function": {"name": "weather", "description": "Forecast",
